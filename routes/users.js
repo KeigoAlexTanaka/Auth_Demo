@@ -26,7 +26,7 @@ const buildAuthResponse = (user) => {
 
 usersRouter.post('/', async (req, res) => {
   try {
-
+        
     const { name, password, email } = req.body;
     const password_digest = await hashPassword(password);
 
@@ -40,7 +40,6 @@ usersRouter.post('/', async (req, res) => {
 
     res.json({ ...respData });
   } catch (e) {
-    console.log(e);
     res.status(500).send(e.message);
   }
 });

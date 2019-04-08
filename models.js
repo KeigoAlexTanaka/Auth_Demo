@@ -13,7 +13,10 @@ const sequelize = new Sequelize({
 const User = sequelize.define('user', {
   name: Sequelize.STRING,
   password_digest: Sequelize.STRING,
-  email: Sequelize.STRING
+  email: {
+    type: Sequelize.STRING,
+    unique: true
+  }
 });
 
 const Tweet = sequelize.define('tweet', {
