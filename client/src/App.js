@@ -11,6 +11,11 @@ class App extends Component {
     this.submitLogIn = this.submitLogIn.bind(this);
     this.sendTweet = this.sendTweet.bind(this);
     this.getTweets = this.getTweets.bind(this);
+    window.c = this
+    this.state = {
+      token: "",
+      tweets : []
+    }
   }
 
   async submitSignUp(e) {
@@ -23,7 +28,12 @@ class App extends Component {
       email: formData.get("email"),
       password: formData.get("password")
     };
-    console.log(data);
+    const res = await axios.post(URL + "/users" , data)
+    console.log('result object:',res);
+  
+    this.setState({
+      token: "Bearer " + res.data.token
+    })
 
     // ~~~ send form data ~~~
   }
@@ -38,7 +48,11 @@ class App extends Component {
     };
     console.log(data);
 
-    // ~~~ send form data~~~
+    const res = await axios.post(`${URL}/users/login`, data)
+    this.setState({
+      token: "Bearer " + res.data.token
+    })
+    
   }
 
   async sendTweet(e) {
@@ -48,13 +62,23 @@ class App extends Component {
     const data = {
       text: formData.get("text")
     };
-    console.log(data);
+    const res = await axios.post(`${URL}/tweets`, data, {
+      headers:{
+        authorization: this.state.token
+      }
+    })
 
-    // ~~~ send form data ~~~~
   }
 
-  async getTweets(e) {
-    // ~~~ do! ~~~~
+  async getTweets() {
+    const res = await axios.get(`${URL}/tweets`,  {
+      headers:{
+        authorization: this.state.token
+      }
+    }) 
+    this.setState({
+      tweets: res.data.tweets
+    })
   }
 
   render() {
