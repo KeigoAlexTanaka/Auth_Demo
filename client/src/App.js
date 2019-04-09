@@ -11,17 +11,7 @@ class App extends Component {
     this.submitLogIn = this.submitLogIn.bind(this);
     this.sendTweet = this.sendTweet.bind(this);
     this.getTweets = this.getTweets.bind(this);
-    window.getTweets = this.getTweets;
-    const token = window.localStorage.getItem('token')
-    this.state = { token: token, tweets: [] };
-    if (token){
-      this.getTweets()
-    }
-    this.logout = this.logout.bind(this)
-    window.c = this
   }
-
-  
 
   async submitSignUp(e) {
     e.preventDefault();
@@ -33,16 +23,9 @@ class App extends Component {
       email: formData.get("email"),
       password: formData.get("password")
     };
-    const resp = await axios.post(`${URL}/users`, data);
-    const token = resp.data.token;
-    const userName = resp.data.user.name;
-    this.setState({ token:token});
+    console.log(data);
 
-    window.localStorage.setItem('token', token)
-  }
-
-  logout(){
-    this.setState({token:false})
+    // ~~~ send form data ~~~
   }
 
   async submitLogIn(e) {
@@ -53,12 +36,9 @@ class App extends Component {
       email: formData.get("email"),
       password: formData.get("password")
     };
-    const resp = await axios.post(`${URL}/users/login`, data);
-    const token = resp.data.token;
-    this.setState({ token });
-    window.localStorage.setItem('token', token)
+    console.log(data);
 
-    this.getTweets()
+    // ~~~ send form data~~~
   }
 
   async sendTweet(e) {
@@ -69,32 +49,21 @@ class App extends Component {
       text: formData.get("text")
     };
     console.log(data);
-    
-    // data format: what is the additional data / header data?
-    // why include "bearer"
-    const resp = await axios.post(`${URL}/tweets`, data, {
-      headers: {
-        authorization: `Bearer ${this.state.token}`
-      }
-    });
-    this.getTweets()
+
+    // ~~~ send form data ~~~~
   }
 
   async getTweets(e) {
-    const resp = await axios.get(`${URL}/tweets`, {
-      headers: {
-        authorization: `Bearer ${this.state.token}`
-      }
-    });
-    console.log(resp);
-    this.setState({tweets: resp.data.tweets})
+    // ~~~ do! ~~~~
   }
 
-  renderForms() {
+  render() {
     return (
-      <div>
+      <div className="App">
+        <h1>Auth Demo</h1>
+        <div>
         {" "}
-        <h3>Register Form</h3>
+        <h3>Sign up Form</h3>
         <form onSubmit={this.submitSignUp}>
           {/* <div class="form-group"> */}
           <label htmlFor="email">name </label>
@@ -123,29 +92,12 @@ class App extends Component {
           <button>Send data!</button>
         </form>
       </div>
-    );
-  }
-
-  renderSendTweetForm() {
-    return <div> send tweet</div>;
-  }
-
-  render() {
-    return (
-      <div className="App">
-        <h1>Auth Demo</h1>
-        {!this.state.token ? (
-          this.renderForms()
-        ) : (
-          <form onSubmit={this.sendTweet}>
-            <label htmlFor="text">tweet </label>
-            <input id="tweet" name="text" type="text" />
-            <button>Send data!</button>
-          </form>
-        )}
-        {this.state.tweets.map(tweet => {
-          return <div key={tweet.id}>{tweet.text} </div>
-        })}
+      <br/>
+        <form onSubmit={this.sendTweet}>
+          <label htmlFor="text">tweet </label>
+          <input id="tweet" name="text" type="text" />
+          <button>Send data!</button>
+        </form>
       </div>
     );
   }

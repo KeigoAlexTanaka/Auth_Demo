@@ -1,54 +1,306 @@
-# Authentication
+## Auth Lesson
+Today we'll be covering authentication and authorization. Yay!
 
-_Introduction_
+- **Authentication**: are you who you say you are? (i.e., you need the right password.)
+- **Authorization**: okay, so you are who you say you are... but what exactly are you allowed to do now? (I.e., web tokens and/or sessions)
 
-Welcome to the Express/React Authentication repo!
+We'll get there, but first, let's set up the app:
+### Set Up:
+- Make sure `auth_demo_db` database is created in postgres
+- Run:
+    - `node resetDB.js`
+    - `npm install`
+    - in `/client`, run `npm install`
+- start server with `npm start`
+- serve react: in `/client` run `npm start`
 
-In this repo you will find:
 
-- a full stack-ish demo of a basic Auth workflow and an associated model
-- a [very verbose markdown file](./essay.md) detailing auth with a few small mini-examples
-- this README with a bed story for Auth
-- a difficult, yet rewarding topic
+### Step 0: Router
+- We'll be using express `router`. If you aren't familiar, peak into `server.js`, and then `routes/users.js`
 
-### Intro 2.0
 
-Full stack authentication is one of the most difficult features to implement in WDI--the others being many-to-many associations and updating a resource.  For Unit 3, the primary aim is to introduce Auth as a concept and outline a bare-bones implementation.  To wit:
 
-### Never Use This Implementation in Production
+Test it out! visit http://localhost:8080/users/test . Notice that the `users` prefix get added to everything in the users route. Neat!
 
-With the caveat that virtually all of the apps you will build on your own or in small groups do not need to be built to the level of a production-grade web app.  Also, it is almost a guarantee that you will never directly touch the auth code at any given startup as a Junior developer; and even if and when you are tasked with implementing an Auth scheme, the standard advice is to take something off the shelf rather than rolling your own.  Auth is such a finicky tool and the risks of missing something or getting it wrong are such that for most applications, using a package or off-the-shelf solution is the only responsible strategy.
 
-But we're not worried about any of that for now.  To get our feet wet, we'll roll Auth from scratch to better understand how all the pieces fit together. For what it's worth, `passport` is a great npm package for `express` that is something of a standard for adding auth to an application.  Unfortunately, there's quite a bit of config needed to get up and running, which is why we'll be building everything from scratch.
 
-Auth is usually a requirement for the Unit 3 group project, so our goal will be to get enough of a handle on Auth that it can be reasonably added to a group project within the project period.
+### Step 1: User Routes for Signup
 
-The payoff for all of this labor is not just being able to understand one of the core components of virtually all modern web apps; auth, and the corresponding associations between a `User` model and other models, enables much richer and interesting features to be added to our apps.
 
-Yay!
+- Now, let's start a signup route. "Signing up" is aka "creating a new user", so we'll need a user post route. Let's start it:
 
-### The Bedtime Story
+`routes/users.js:`
+```js
+usersRouter.post('/', async (req, res) => {
+    const { name, password, email } = req.body;
 
-#### A User Signs up 
-- The `User` is created with a `POST` request to `/users` or `/register`
-- The `password` is hashed using `bcrypt` and stored to the db as a `password_digest`
-- Non-sensitive, but identifying, information about the user is encoded into a token that cannot be tampered with and sent back to the client as a response
+    console.log(name, password, email)
+});
+```
 
-#### A User Signs in
-- A user sends their username/password to the server
-- The server compares the password with the hashed password
-- If they match, a token is generated and sent to the client
-- If not, a 401 is sent
+- Lets also have our frontend send the form data to the backend:
 
-#### A Protected Route
+`client/src/App.js`
+```js
+async submitSignUp(e) {
+    e.preventDefault();
 
-- A user makes a request to an endpoint that only logged-in users should see
-- If the user has not signed up or logged in, the response should be a 401 or 403
-- If the user has already registerd or logged in, they should have stored the `token` to localStorage or `state` within a React app
-- On subsequent requests to protected endpoints, the user should attach the token as an Authentication Bearer token to the request
-- The server can then inspect the header, and if it exists decode the token
-- The decoded token data will be just that data that was encoded from the beginning
-- The token decoding phase can also determine if the token's data has been tampered with.
-- If the token was not tampered with and has a valid user's id/email or somesuch, then it allows the request to reach the protected endpoint; else, a 403 is returned to the client.
+    const formData = new FormData(e.target);
 
-- Optionally, the protected route can attach the decoded user data to the request object so that the endpoint does not need to make an additional db call to fetch the "current user's" data.
+    const data = {
+      name: formData.get("name"),
+      email: formData.get("email"),
+      password: formData.get("password")
+    };
+    // add this:
+    const resp = await axios.post(`${URL}/users`, data);
+}
+```
+
+- We should see (in our server logs) data getting sent to the backend. Normally, at this point, we would simply store the data as-is. However, we **do not** want to store passwords as simple plaintext strings!
+- Intead, we'll hash them, and only store the hashses; this will let us verify the passwords, without having to store them directly. Better security for our users — win!
+
+
+Copy the following into auth.js
+`auth.js`
+```js
+const bcrypt = require('bcrypt');
+
+const SALT_ROUNDS = 11;
+
+const hashPassword = async (password) => {
+  const digest = await bcrypt.hash(password, SALT_ROUNDS);
+  return digest;
+}
+
+```
+This method (using brcrypt) simply inputs a password and outputs a pseudo-random "hash" (the SALT_ROUNDS adds a bit more randomness into the mix in case people pick poor passwords)
+
+
+- Import this method and `user` it to hash the password before storing it
+
+`users.js`
+```js
+const { hashPassword} = require('../auth');
+// ....
+
+usersRouter.post('/', async (req, res) => {
+    const { name, password, email } = req.body;
+
+    const password_digest = await hashPassword(password);
+
+    const user = await User.create({
+      name,
+      email,
+      password_digest
+    });
+});
+
+```
+
+- This route now officially creates a new user and safely stores their password. Yay!
+
+### 2. User route for login
+
+- As before, let's have our `submitLogin` method send data to the backend:
+`App.js`
+```js
+  async submitLogIn(e) {
+    e.preventDefault();
+
+    const formData = new FormData(e.target);
+    const data = {
+      email: formData.get("email"),
+      password: formData.get("password")
+    };
+    // add
+    const resp = await axios.post(`${URL}/users/login`, data);
+  }
+
+```
+<br/><br/>
+
+This time, we're authenticating a login, so we'll need a method to hash the given password and confirm that the digest matches the one stored in the database. `bcrypt` again! Copy this into auth:
+
+`auth.js`
+```js
+const checkPassword = async (password, password_digest) => {
+  return await bcrypt.compare(password, password_digest);
+}
+```
+This method returns a boolean indicating whether or not the given assword matches the given hash
+
+<br/><br/>
+
+- Now let's create a login route, and use our new checkPassword method (don't forget to import it!) for authenticaion:
+
+
+`routes/users.js`
+```js
+
+usersRouter.post('/login', async (req, res) => {
+
+    const { email, password } = req.body;
+    const user = await User.find({
+      where: {
+        email 
+      }
+    });
+    const passwordIsCorrect = await checkPassword(password, user.password_digest)
+    if (passwordIsCorrect){
+        // ???
+    } 
+
+```
+
+This works! We did it! We can confirm whether or not a user is attempting a valid login... but then what?
+
+The whole point of "logging in" is that now, the user should be authorized to do certain things they couldn't do before.
+
+We need to give them an auth token! (https://jwt.io/introduction/) By signing this token and granting it to them, they will be able to continuously prove authoriziation. 
+
+### Step 3: Web tokens
+Copy this into auth:
+
+`auth.js`
+```js
+const genToken = (user) => {
+  const token_data = {
+    id: user.id,
+    name: user.name,
+    email: user.email
+  };
+  const token = jwt.sign(data, TOKEN_KEY);
+  return token;
+};
+```
+
+
+Now, after loging in, send the user their auth token:
+```js
+usersRouter.post('/login', async (req, res) => {
+
+    const { email, password } = req.body;
+    const user = await User.find({
+      where: {
+        email 
+      }
+    });
+    const passwordIsCorrect = await checkPassword(password, user.password_digest)
+    if (passwordIsCorrect){
+        const token = genToken(user);
+        res.json({ token: token });
+    } 
+}
+```
+
+The user will store this token on the front-end:
+
+```js
+  async submitLogIn(e) {
+    e.preventDefault();
+
+    const formData = new FormData(e.target);
+    const data = {
+      email: formData.get("email"),
+      password: formData.get("password")
+    };
+    const resp = await axios.post(`${URL}/users/login`, data);
+    const token = resp.data.token;
+    this.setState({ token });
+  }
+
+```
+
+
+
+Let's do the same thing for sign up (so that after sign up, they are immediately "logged in")
+```js
+    const { name, password, email } = req.body;
+    const password_digest = await hashPassword(password);
+
+    const user = await User.create({
+      name,
+      email,
+      password_digest
+    });
+    const token = genToken(user);
+
+    res.json({ token: tk });
+```
+
+Same on front end
+
+```js
+  async submitSignUp(e) {
+    e.preventDefault();
+
+    const formData = new FormData(e.target);
+
+    const data = {
+      name: formData.get("name"),
+      email: formData.get("email"),
+      password: formData.get("password")
+    };
+    const resp = await axios.post(`${URL}/users`, data);
+    const token = resp.data.token;
+    this.setState({ token:token});
+  }
+```
+
+
+Now, the authentication part:
+
+Let's add some middleware for authenticatio nso we can use it for multiple routes.
+
+```js
+const restrict = (req, res, next) => {
+  try {
+    const token = req.headers.authorization.split(" ")[1];
+    const data = jwt.verify(token, TOKEN_KEY);
+    res.locals.user = data;
+    next();
+  } catch (e) {
+    console.log(e);
+    res.status(403).send('Unauthorized');
+  }
+}
+```
+
+
+sendTweet method that includes Auth data:
+
+
+```js
+  async sendTweet(e) {
+    e.preventDefault();
+
+    const formData = new FormData(e.target);
+    const data = {
+      text: formData.get("text")
+    };
+    console.log(data);
+    
+    const resp = await axios.post(`${URL}/tweets`, data, {
+      headers: {
+        authorization: `Bearer ${this.state.token}`
+      }
+    });
+```
+attach it to tweet routes
+``` js
+tweetsRouter.post("/", restrict, async (req, res) => {
+
+```
+
+```js
+tweetsRouter.get("/",restrict, async (req, res) => {
+
+```
+
+
+Lab: 
+- build out the front end to retreive the latest tweet list (when logged in)
+- Create a log out method (does this need anything on the backend)?
+- Use `localStorage` to presist the token (i.e., stay "logged in" after reloading the page)
+

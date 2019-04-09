@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const logger = require('morgan');
+
 const usersRouter = require('./routes/users');
 const tweetsRouter = require('./routes/tweets');
 
@@ -11,6 +12,7 @@ const app = express();
 app.use(logger('dev'));
 app.use(cors());
 app.use(bodyParser.json());
+
 app.use('/users', usersRouter);
 app.use('/tweets', tweetsRouter);
 
