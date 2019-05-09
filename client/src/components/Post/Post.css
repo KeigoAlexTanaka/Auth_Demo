@@ -1,0 +1,19 @@
+.Post {
+  width: 40vw;
+  margin: 2vw auto;
+  border: 1px solid black;
+  display: grid;
+}
+.Post button {
+  width: 20%;
+  margin: 1vw auto;
+  background: white;
+  color: black;
+  font-family: 'Arial';
+  transition: all 0.2s;
+}
+
+.Post button:hover {
+  background: black;
+  color: white;
+}
