@@ -5,8 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "db:create": "dropdb --if-exists -e auth_demo_db && createdb -e auth_demo_db",
+    "db:reset": "node resetDb.js",
     "dev": "nodemon server.js",
-    "resetDb": "node resetDb.js",
     "start": "node server.js"
   },
   "keywords": [],
