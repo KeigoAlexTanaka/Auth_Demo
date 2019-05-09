@@ -10,3 +10,6 @@
     - in `/client`, run `npm install`
 - start server with `npm run dev`
 - serve react: in `/client` run `npm start`
+
+Modified from below:
+https://git.generalassemb.ly/wdi-nyc-terabyte/Auth_Lesson
